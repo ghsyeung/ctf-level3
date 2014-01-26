@@ -65,6 +65,7 @@ class SearchMasterServer(port: Int, id: Int) extends AbstractSearchServer(port, 
                    .filter(_.isDirectory)
                    .map(_.getName).toList
     
+    System.err.println("Subdirectory size: " + subdirs.size)
     assert(subdirs.size == 3, "Number of subdirs isn't 3")
 
     val responses = Future.collect(clients.zip(subdirs).map {case (c, s) => c.index(path + '/' + s)})
