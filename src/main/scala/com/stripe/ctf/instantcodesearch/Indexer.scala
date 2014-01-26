@@ -7,7 +7,8 @@ import java.nio.charset._
 import java.nio.file.attribute.BasicFileAttributes
 
 class Indexer(indexPath: String) {
-  val root = FileSystems.getDefault().getPath(indexPath)
+  //TODO: resetting root to one level up for correct index value
+  val root = FileSystems.getDefault().getPath(indexPath).resolve("../")
   val idx = new Index(root.toAbsolutePath.toString)
 
   def index() : Indexer = {

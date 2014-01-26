@@ -69,6 +69,7 @@ class SearchMasterServer(port: Int, id: Int) extends AbstractSearchServer(port, 
         clients(i % 3).index(path + '/' + dir)
       }
       })
+    //System.err.println(responses)
 
     /*
     System.err.println("Subdirectory size: " + subdirs.size)
