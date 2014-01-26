@@ -2,7 +2,9 @@ package com.stripe.ctf.instantcodesearch
 
 import com.twitter.util.{Future, Promise, FuturePool}
 import com.twitter.concurrent.Broker
-import org.jboss.netty.handler.codec.http.{HttpResponse, HttpResponseStatus}
+import org.jboss.netty.handler.codec.http._
+import org.jboss.netty.buffer.ChannelBuffers.copiedBuffer
+import org.jboss.netty.util.CharsetUtil.UTF_8
 
 class SearchServer(port : Int, id : Int) extends AbstractSearchServer(port, id) {
   val IndexPath = "instantcodesearch-" + id + ".index"
@@ -63,4 +65,16 @@ class SearchServer(port : Int, id : Int) extends AbstractSearchServer(port, id) 
 
     promise
   }
+
+  override def querySuccessResponse(results: List[Match]): HttpResponse = {
+    val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
+    val resultString = results
+      .map {r => "\"" + r.path + ":" + r.line + "\""}
+      .mkString("[", ",\n", "]")
+    val content = resultString
+    response.setContent(copiedBuffer(content, UTF_8))
+
+    response
+  }
+
 }
