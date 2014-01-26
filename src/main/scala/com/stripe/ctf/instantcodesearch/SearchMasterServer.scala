@@ -1,8 +1,10 @@
 package com.stripe.ctf.instantcodesearch
 
+import java.io._
 import com.twitter.util.Future
-import org.jboss.netty.handler.codec.http.HttpResponseStatus
+import org.jboss.netty.handler.codec.http._
 import org.jboss.netty.util.CharsetUtil.UTF_8
+import org.jboss.netty.buffer.ChannelBuffers.copiedBuffer
 
 class SearchMasterServer(port: Int, id: Int) extends AbstractSearchServer(port, id) {
   val NumNodes = 3
@@ -58,12 +60,29 @@ class SearchMasterServer(port: Int, id: Int) extends AbstractSearchServer(port, 
       "[master] Requesting " + NumNodes + " nodes to index path: " + path
     )
 
-    val responses = Future.collect(clients.map {client => client.index(path)})
+    val dir = new File(path);
+    val subdirs = dir.listFiles
+                   .filter(_.isDirectory)
+                   .map(_.getName).toList
+    
+    assert(subdirs.size == 3, "Number of subdirs isn't 3")
+
+    val responses = Future.collect(clients.zip(subdirs).map {case (c, s) => c.index(path + '/' + s)})
+    //val responses = Future.collect(clients.map {client => client.index(path)})
     responses.map {_ => successResponse()}
   }
 
   override def query(q: String) = {
-    val responses = clients.map {client => client.query(q)}
-    responses(0)
+    val responses = Future.collect(clients.map {client => client.query(q)})
+    responses.map { rs => 
+      val l = rs.map { r => r.getContent().toString(UTF_8).drop(1).dropRight(1).trim }
+      val merged = l.filter({ s => s.length > 0 }).mkString("[", ",\n", "]")
+      System.err.println(merged)
+      val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
+      val content = "{\"success\": true,\n \"results\": " + merged + "}"
+      System.err.println(content)
+      response.setContent(copiedBuffer(content, UTF_8))
+      response
+    }
   }
 }
