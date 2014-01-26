@@ -64,12 +64,19 @@ class SearchMasterServer(port: Int, id: Int) extends AbstractSearchServer(port, 
     val subdirs = dir.listFiles
                    .filter(_.isDirectory)
                    .map(_.getName).toList
-    
+    val responses = Future.collect(
+      subdirs.zipWithIndex.map { case (dir, i) => {
+        clients(i % 3).index(path + '/' + dir)
+      }
+      })
+
+    /*
     System.err.println("Subdirectory size: " + subdirs.size)
     assert(subdirs.size == 3, "Number of subdirs isn't 3")
 
     val responses = Future.collect(clients.zip(subdirs).map {case (c, s) => c.index(path + '/' + s)})
     //val responses = Future.collect(clients.map {client => client.index(path)})
+    */
     responses.map {_ => successResponse()}
   }
 
@@ -78,11 +85,10 @@ class SearchMasterServer(port: Int, id: Int) extends AbstractSearchServer(port, 
     responses.map { rs => 
       val l = rs.map { r => r.getContent().toString(UTF_8).drop(1).dropRight(1).trim }
       val merged = l.filter({ s => s.length > 0 }).mkString("[", ",\n", "]")
-      System.err.println(merged)
       val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
       val content = "{\"success\": true,\n \"results\": " + merged + "}"
-      System.err.println(content)
       response.setContent(copiedBuffer(content, UTF_8))
+//      System.err.println(response)
       response
     }
   }
