@@ -8,11 +8,14 @@ import java.nio.file.attribute.BasicFileAttributes
 
 class Indexer(indexPath: String) {
   //TODO: resetting root to one level up for correct index value
-  val root = FileSystems.getDefault().getPath(indexPath).resolve("../")
+  val in = FileSystems.getDefault().getPath(indexPath)
+  System.err.println(in)
+  val root = in.resolve("../").normalize()
+  System.err.println(root)
   val idx = new Index(root.toAbsolutePath.toString)
 
   def index() : Indexer = {
-    Files.walkFileTree(root, new SimpleFileVisitor[Path] {
+    Files.walkFileTree(in, new SimpleFileVisitor[Path] {
       override def preVisitDirectory(dir : Path, attrs : BasicFileAttributes) : FileVisitResult = {
         if (Files.isHidden(dir) && dir.toString != ".")
           return FileVisitResult.SKIP_SUBTREE
