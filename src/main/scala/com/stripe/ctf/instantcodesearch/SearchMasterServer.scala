@@ -8,6 +8,7 @@ import org.jboss.netty.buffer.ChannelBuffers.copiedBuffer
 
 class SearchMasterServer(port: Int, id: Int) extends AbstractSearchServer(port, id) {
   val NumNodes = 3
+  @volatile var indexed = false
 
   def this(port: Int) { this(port, 0) }
 
@@ -20,7 +21,8 @@ class SearchMasterServer(port: Int, id: Int) extends AbstractSearchServer(port, 
     val successF = responsesF.map {responses => responses.forall { response =>
 
         (response.getStatus() == HttpResponseStatus.OK
-          && response.getContent.toString(UTF_8).contains("true"))
+          && response.getContent.toString(UTF_8).contains("true") 
+          && indexed == true)
       }
     }
     successF.map {success =>
@@ -78,7 +80,10 @@ class SearchMasterServer(port: Int, id: Int) extends AbstractSearchServer(port, 
     val responses = Future.collect(clients.zip(subdirs).map {case (c, s) => c.index(path + '/' + s)})
     //val responses = Future.collect(clients.map {client => client.index(path)})
     */
-    responses.map {_ => successResponse()}
+    responses.map {_ => {
+      indexed = true
+      successResponse()
+    }}
   }
 
   override def query(q: String) = {
